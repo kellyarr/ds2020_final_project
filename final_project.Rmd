@@ -54,6 +54,7 @@ df <- df %>%
 
 
 ```
+
 Due to lack of of clarity for "Pts...#" they were given names with appropriate names
 that correlate with their values. I also removed a few columns that referenced specific
 players because I knew I was not going to work with that information.
@@ -73,6 +74,7 @@ df <- df %>% mutate(
 
 df %>% select(Year, W, L, PF, PA, MoV) %>% head()
 ```
+
 Mutated the data set to fit the question better. 
 
 ```{r}
@@ -89,6 +91,7 @@ ggplot(df, aes(x = Year, y = MoV)) +
   ) +
   theme_minimal()
 ```
+
 Plotted the individual seasons and made lines that follow the trend of MoV over
 the years.
 
@@ -113,6 +116,7 @@ ggplot(df, aes(x = Year, y = MoV)) +
   theme_minimal()
 
 ```
+
 Got rid of the linear trend line and line that connected the points of each season to make
 the graph more readable. Also minimized the titles of the axes.
 
@@ -129,6 +133,7 @@ ggplot(df, aes(Year, MoV)) +
   labs(title = "MoV with 3-Year Moving Average", x = "Year", y = "MoV") +
   theme_minimal()
 ```
+
 Here I wanted to see if creating an average of 3 year clusters would should trends
 in similar years but ultimately, it did not seem any different from the previous
 plot.
@@ -150,6 +155,7 @@ df %>%
     sd_MoV = sd(MoV, na.rm = TRUE)
   )
 ```
+
 In this table, I created bins for the decades because I wanted to see if there was
 a relationship between decades and the average MoV.
 
@@ -164,6 +170,7 @@ ggplot(df, aes(Year)) +
 
 
 ```
+
 I wanted to check the MoV was moving similar to the SRS because if they weren't that would
 have meant that there was something off in the data but fortunately they were moving almost
 in sync. 
@@ -185,6 +192,7 @@ df_long <- df %>%
   select(Year, Playoff, PF, PA, SRS) %>%
   pivot_longer(cols = c(PF, PA, SRS), names_to = "Metric", values_to = "Value")
 ```
+
 I specified what rows were years that the Seahawks made it to the playoffs and 
 mutated the data set to only include relevant data to the question being asked.
 
@@ -203,6 +211,7 @@ ggplot(df_long, aes(x = Playoff, y = Value, fill = Playoff)) +
   theme(legend.position = "none")
 
 ```
+
 These box plots show playoff seasons stand out with stronger overall performance as 
 they allow fewer points (around 330–350 vs. 360–380), score more consistently on offense
 (395–410 vs. 340–360), and achieve much higher SRS values (8–10 compared to near zero).
