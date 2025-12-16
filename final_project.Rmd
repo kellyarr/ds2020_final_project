@@ -1,7 +1,11 @@
 ---
 title: "Analysis of the Seattle Seahawks from 2000-2024"
 author: "Kelly Ariaza"
+<<<<<<< HEAD
 output: github_document
+=======
+output: html_document
+>>>>>>> 8433628c132602b3472a903cb77e35c0d81c9094
 ---
 
 ## Introduction
