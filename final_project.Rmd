@@ -1,0 +1,211 @@
+---
+title: "Analysis of the Seattle Seahawks from 2000-2024"
+author: "Kelly Ariaza"
+output: github_document
+---
+
+## Introduction
+The goal of this project is to explore the data set to analyze the performance of the Seattle Seahawks from 2000–2024. This analysis can be used to understand how key performance metrics influence the team’s chances of making the playoffs and identify patterns that could inform future success.
+
+The questions in this analysis include:
+
+1. Has the Margin of Victory (MoV) improve or decline over the years?
+
+2. How do playoff seasons differ from non-playoff seasons in terms of PF, PA, and SRS?
+
+These will be the main questions answered and show how offensive strength, defensive consistency, and overall team quality (SRS) correlate with playoff likelihood, providing insights into what factors matter most for future performance.
+
+## Data
+### Structure
+The link to the data set is 
+https://www.pro-football-reference.com/teams/sea/index.htm. This website 
+includes season statistics of the Seattle Seahawks from 1976-2025. In creating
+the data set, I decided for the range to be 2000-2024 to see more recent data and
+excluded 2025 as the season is ongoing and is not complete.
+
+Reading in data set and making sure that all names are unique.
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+
+df <- read_csv(
+  "seahawks",
+  skip = 1,                  
+  na = c("", "NA"),          
+  trim_ws = TRUE             
+)
+
+names(df) <- make.names(names(df), unique = TRUE)
+
+df <- df %>%
+  rename(
+    Pts_Off  = `Pts...14`,
+    Yds_Off  = `Yds...15`,
+    Pts_Def  = `Pts...16`,
+    Yds_Def  = `Yds...17`
+  )
+
+
+df <- df %>%
+  select(-AV, -Passer, -Rusher, -Receiver)
+
+
+
+```
+Due to lack of of clarity for "Pts...#" they were given names with appropriate names
+that correlate with their values. I also removed a few columns that referenced specific
+players because I knew I was not going to work with that information.
+
+## Results
+```{r}
+df
+```
+
+### Has the Margin of Victory (MoV) improve or decline over the years?
+
+```{r}
+df <- df %>% mutate(
+  MoV = as.numeric(MoV),
+  Year = as.integer(Year),
+)
+
+df %>% select(Year, W, L, PF, PA, MoV) %>% head()
+```
+Mutated the data set to fit the question better. 
+
+```{r}
+
+ggplot(df, aes(x = Year, y = MoV)) +
+  geom_line(color = "#1f77b4") +
+  geom_point(color = "#1f77b4") +
+  geom_smooth(method = "loess", span = 0.6, color = "#d62728", fill = "#f5b7b1") +
+  geom_smooth(method = "lm", se = TRUE, color = "#2ca02c", fill = "#b2df8a") +
+  labs(
+    title = "Seattle Seahawks: Margin of Victory (MoV) Over Time",
+    subtitle = "Red = LOESS smoother; Green = Linear trend",
+    x = "Year", y = "Average MoV (Pts Scored-Pts Allowed)/Games Played"
+  ) +
+  theme_minimal()
+```
+Plotted the individual seasons and made lines that follow the trend of MoV over
+the years.
+
+```{r}
+df <- df %>% mutate(
+  MoV = as.numeric(MoV),
+  Year = as.integer(Year),
+)
+
+
+df %>% select(Year, W, L, PF, PA, MoV) %>% head()
+
+
+
+ggplot(df, aes(x = Year, y = MoV)) +
+  geom_point(color = "#1f77b4") +
+  geom_smooth(method = "loess", span = 0.6, color = "#d62728", fill = "#f5b7b1") +
+  labs(
+    title = "Seattle Seahawks: Margin of Victory (MoV) Over Time",
+    x = "Year", y = "Average Margin of Victory"
+  ) +
+  theme_minimal()
+
+```
+Got rid of the linear trend line and line that connected the points of each season to make
+the graph more readable. Also minimized the titles of the axes.
+
+```{r}
+
+df <- df %>%
+  arrange(Year) %>%
+  mutate(MoV_ma3 = as.numeric(stats::filter(MoV, rep(1/3, 3), sides = 2)))
+
+ggplot(df, aes(Year, MoV)) +
+  geom_point(alpha = 0.6) +
+  geom_line(alpha = 0.6) +
+  geom_line(aes(y = MoV_ma3), color = "#ff7f0e", linewidth = 1.2) +
+  labs(title = "MoV with 3-Year Moving Average", x = "Year", y = "MoV") +
+  theme_minimal()
+```
+Here I wanted to see if creating an average of 3 year clusters would should trends
+in similar years but ultimately, it did not seem any different from the previous
+plot.
+
+```{r}
+
+df <- df %>%
+  mutate(era = case_when(
+    Year <= 2009 ~ "2000s",
+    Year <= 2019 ~ "2010s",
+    TRUE ~ "2020s"
+  ))
+
+df %>%
+  group_by(era) %>%
+  summarise(
+    n = n(),
+    mean_MoV = mean(MoV, na.rm = TRUE),
+    sd_MoV = sd(MoV, na.rm = TRUE)
+  )
+```
+In this table, I created bins for the decades because I wanted to see if there was
+a relationship between decades and the average MoV.
+
+```{r}
+
+ggplot(df, aes(Year)) +
+  geom_line(aes(y = MoV), color = "#1f77b4") +
+  geom_line(aes(y = SRS), color = "#2ca02c") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "MoV vs SRS Over Time", x = "Year", y = "Points / Rating") +
+  theme_minimal()
+
+
+```
+I wanted to check the MoV was moving similar to the SRS because if they weren't that would
+have meant that there was something off in the data but fortunately they were moving almost
+in sync. 
+
+### How do playoff seasons differ from non-playoff seasons in terms of PF, PA, and SRS?
+
+```{r}
+library(scales)
+library(tidyr)
+
+playoff_years <- c(2003,2004,2005,2006,2007,2010,2012,2013,2014,2015,
+                   2016,2018,2019,2020,2022)
+
+df <- df %>%
+  mutate(Playoff = if_else(Year %in% playoff_years, "Playoff", "Non-Playoff"))
+
+
+df_long <- df %>%
+  select(Year, Playoff, PF, PA, SRS) %>%
+  pivot_longer(cols = c(PF, PA, SRS), names_to = "Metric", values_to = "Value")
+```
+I specified what rows were years that the Seahawks made it to the playoffs and 
+mutated the data set to only include relevant data to the question being asked.
+
+```{r}
+
+ggplot(df_long, aes(x = Playoff, y = Value, fill = Playoff)) +
+  geom_violin(trim = FALSE, alpha = 0.25, color = NA) +
+  geom_boxplot(width = 0.18, outlier.alpha = 0.35, fatten = 0.8) +
+  facet_wrap(~ Metric, scales = "free_y") +
+  scale_fill_manual(values = c("Non-Playoff" = "#999999", "Playoff" = "#1f77b4")) +
+  labs(
+    title = "Playoff vs Non-Playoff Seasons: PF, PA, and SRS",
+    x = "", y = "Value"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none")
+
+```
+These box plots show playoff seasons stand out with stronger overall performance as 
+they allow fewer points (around 330–350 vs. 360–380), score more consistently on offense
+(395–410 vs. 340–360), and achieve much higher SRS values (8–10 compared to near zero).
+These differences show that playoff years are marked by better defense, greater scoring 
+efficiency, and superior team quality relative to schedule strength, with minimal overlap
+between playoff and non-playoff seasons.
